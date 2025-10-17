@@ -71,43 +71,43 @@ impl SlotMachine {
 
         // 各行を個別に出力して正確な表示を確保
         execute!(stdout(), cursor::MoveTo(0, 2))?;
-        execute!(stdout(), Print("┌─────┬─────┬─────┐"))?;
+        execute!(stdout(), Print("┌────┬────┬────┐"))?;
         
         execute!(stdout(), cursor::MoveTo(0, 3))?;
         execute!(
             stdout(),
             Print(format!(
-                "│  {}  │  {}  │  {}  │",
+                "│ {} │ {} │ {} │",
                 reel_symbols[0][0], reel_symbols[1][0], reel_symbols[2][0]
             ))
         )?;
         
         execute!(stdout(), cursor::MoveTo(0, 4))?;
-        execute!(stdout(), Print("├─────┼─────┼─────┤"))?;
+        execute!(stdout(), Print("├────┼────┼────┤"))?;
         
         execute!(stdout(), cursor::MoveTo(0, 5))?;
         execute!(
             stdout(),
             Print(format!(
-                "│  {}  │  {}  │  {}  │",
+                "│ {} │ {} │ {} │",
                 reel_symbols[0][1], reel_symbols[1][1], reel_symbols[2][1]
             ))
         )?;
         
         execute!(stdout(), cursor::MoveTo(0, 6))?;
-        execute!(stdout(), Print("├─────┼─────┼─────┤"))?;
+        execute!(stdout(), Print("├────┼────┼────┤"))?;
         
         execute!(stdout(), cursor::MoveTo(0, 7))?;
         execute!(
             stdout(),
             Print(format!(
-                "│  {}  │  {}  │  {}  │",
+                "│ {} │ {} │ {} │",
                 reel_symbols[0][2], reel_symbols[1][2], reel_symbols[2][2]
             ))
         )?;
         
         execute!(stdout(), cursor::MoveTo(0, 8))?;
-        execute!(stdout(), Print("└─────┴─────┴─────┘"))?;
+        execute!(stdout(), Print("└────┴────┴────┘"))?;
 
         // リールの状態表示
         let status: Vec<String> = self
