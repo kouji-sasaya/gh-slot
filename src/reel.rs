@@ -6,11 +6,25 @@ use tokio::time::sleep;
 pub const REEL_SIZE: usize = 21;
 pub const DISPLAY_SIZE: usize = 3;
 
-// 21個の絵文字
-pub const SYMBOLS: [&str; REEL_SIZE] = [
-    "🍒", "🍋", "🍊", "🍇", "🍉", "🍓", "🥝", 
+// リール1のシンボル（フルーツ中心）
+pub const REEL1_SYMBOLS: [&str; REEL_SIZE] = [
+    "🍒", "🍋", "🍊", "🍇", "🍉", "🍓", "🥝",
     "🍌", "🍑", "🍎", "🥭", "🍍", "🥥", "🍈",
-    "🔔", "💎", "⭐", "🍀", "🎰", "💰", "👑"
+    "🔔", "⭐", "💎", "🍀", "🎰", "💰", "7️⃣"
+];
+
+// リール2のシンボル（バランス型）
+pub const REEL2_SYMBOLS: [&str; REEL_SIZE] = [
+    "🍎", "🍒", "🍊", "�", "🍋", "⭐", "🍇",
+    "💎", "🍉", "🍓", "🎰", "🥝", "🍌", "💰",
+    "🍑", "7️⃣", "🥭", "🍍", "🥥", "🍈", "🍀"
+];
+
+// リール3のシンボル（特殊シンボル多め）
+pub const REEL3_SYMBOLS: [&str; REEL_SIZE] = [
+    "💎", "🔔", "⭐", "🍒", "7️⃣", "🎰", "💰",
+    "🍋", "🍊", "🍇", "🍀", "🍉", "🍓", "🥝",
+    "🍌", "🍑", "🍎", "🥭", "🍍", "🥥", "🍈"
 ];
 
 #[derive(Clone)]
@@ -18,15 +32,17 @@ pub struct Reel {
     pub position: Arc<Mutex<usize>>,
     pub is_spinning: Arc<Mutex<bool>>,
     pub stop_requested: Arc<Mutex<bool>>,
+    pub reel_id: usize, // リールのID（0, 1, 2）
 }
 
 impl Reel {
-    pub fn new() -> Self {
+    pub fn new(reel_id: usize) -> Self {
         let mut rng = rand::thread_rng();
         Self {
             position: Arc::new(Mutex::new(rng.gen_range(0..REEL_SIZE))),
             is_spinning: Arc::new(Mutex::new(false)),
             stop_requested: Arc::new(Mutex::new(false)),
+            reel_id,
         }
     }
 
@@ -48,10 +64,17 @@ impl Reel {
 
     pub fn get_visible_symbols(&self) -> [&'static str; DISPLAY_SIZE] {
         let position = *self.position.lock().unwrap();
+        let symbols = match self.reel_id {
+            0 => &REEL1_SYMBOLS,
+            1 => &REEL2_SYMBOLS,
+            2 => &REEL3_SYMBOLS,
+            _ => &REEL1_SYMBOLS, // デフォルト
+        };
+        
         [
-            SYMBOLS[position],
-            SYMBOLS[(position + 1) % REEL_SIZE],
-            SYMBOLS[(position + 2) % REEL_SIZE],
+            symbols[position],
+            symbols[(position + 1) % REEL_SIZE],
+            symbols[(position + 2) % REEL_SIZE],
         ]
     }
 

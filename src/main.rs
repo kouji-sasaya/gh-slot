@@ -20,7 +20,7 @@ struct SlotMachine {
 impl SlotMachine {
     fn new() -> Self {
         Self {
-            reels: [Reel::new(), Reel::new(), Reel::new()],
+            reels: [Reel::new(0), Reel::new(1), Reel::new(2)],
             last_spinning_state: [false, false, false],
         }
     }
