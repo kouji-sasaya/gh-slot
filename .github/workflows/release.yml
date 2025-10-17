@@ -39,16 +39,16 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          binary_name="gh-rust-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.binary_suffix }}"
-          cp target/${{ matrix.target }}/release/gh-rust${{ matrix.binary_suffix }} dist/$binary_name
+          binary_name="gh-slot-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.binary_suffix }}"
+          cp target/${{ matrix.target }}/release/gh-slot${{ matrix.binary_suffix }} dist/$binary_name
           echo "Binary created: $binary_name"
           ls -la dist/
       
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gh-rust-${{ matrix.platform }}-${{ matrix.arch }}
-          path: dist/gh-rust-${{ matrix.platform }}-${{ matrix.arch }}*
+          name: gh-slot-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/gh-slot-${{ matrix.platform }}-${{ matrix.arch }}*
 
   release:
     needs: build
@@ -65,7 +65,7 @@ jobs:
         run: |
           mkdir -p release-assets
           # Copy all binaries to release assets
-          find artifacts -name "gh-rust-*" -type f -exec cp {} release-assets/ \;
+          find artifacts -name "gh-slot-*" -type f -exec cp {} release-assets/ \;
           echo "Release assets prepared:"
           ls -la release-assets/
       
@@ -79,17 +79,17 @@ jobs:
             
             ## Installation
             \`\`\`bash
-            gh extension install kouji-sasaya/gh-rust
+            gh extension install kouji-sasaya/gh-slot
             \`\`\`
             
             ## Usage
             \`\`\`bash
-            gh rust
+            gh slot
             \`\`\`
             
             ## Available Binaries
-            - \`gh-rust-linux-amd64\` - Linux x86_64
-            - \`gh-rust-windows-amd64.exe\` - Windows x86_64
+            - \`gh-slot-linux-amd64\` - Linux x86_64
+            - \`gh-slot-windows-amd64.exe\` - Windows x86_64
             
             ## Supported Platforms
             - Linux (x86_64)
