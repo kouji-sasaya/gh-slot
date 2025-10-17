@@ -34,6 +34,8 @@ impl SlotMachine {
         // 各リールのスピンループを並行実行
         for reel in &self.reels {
             let reel_clone = reel.clone();
+            
+            // リール識別付きでタスクを作成
             tokio::spawn(async move { 
                 reel_clone.spin_loop().await;
             });
@@ -225,10 +227,10 @@ async fn main() -> io::Result<()> {
         let state_changed = slot_machine.has_state_changed();
         
         // キー入力のチェック（ノンブロッキング）
-        if event::poll(Duration::from_millis(50))? {
+        if event::poll(Duration::from_millis(100))? {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
-                    KeyCode::Char(' ') => {
+                    KeyCode::Char(c) if c == ' ' || c == '\u{3000}' || c.is_whitespace() => {
                         slot_machine.start_all_reels().await;
                     }
                     KeyCode::Left => {
