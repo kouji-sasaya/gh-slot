@@ -7,10 +7,91 @@ permissions:
   contents: write
 
 jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+            arch: amd64
+            binary_suffix: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows
+            arch: amd64
+            binary_suffix: ".exe"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Build binary
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+      
+      - name: Prepare binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          binary_name="gh-rust-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.binary_suffix }}"
+          cp target/${{ matrix.target }}/release/gh-rust${{ matrix.binary_suffix }} dist/$binary_name
+          echo "Binary created: $binary_name"
+          ls -la dist/
+      
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-rust-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/gh-rust-${{ matrix.platform }}-${{ matrix.arch }}*
+
   release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: cli/gh-extension-precompile@v1
+      - uses: actions/checkout@v4
+      
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
         with:
-          build_script_override: "script/build.sh"
+          path: artifacts
+      
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          # Copy all binaries to release assets
+          find artifacts -name "gh-rust-*" -type f -exec cp {} release-assets/ \;
+          echo "Release assets prepared:"
+          ls -la release-assets/
+      
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "GitHub CLI extension release ${{ github.ref_name }} with precompiled binaries.
+            
+            ## Installation
+            \`\`\`bash
+            gh extension install kouji-sasaya/gh-rust
+            \`\`\`
+            
+            ## Usage
+            \`\`\`bash
+            gh rust
+            \`\`\`
+            
+            ## Available Binaries
+            - \`gh-rust-linux-amd64\` - Linux x86_64
+            - \`gh-rust-windows-amd64.exe\` - Windows x86_64
+            
+            ## Supported Platforms
+            - Linux (x86_64)
+            - Windows (x86_64)" \
+            release-assets/*
