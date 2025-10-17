@@ -1,0 +1,50 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug gh-slot",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=gh-slot",
+                    "--package=gh-slot"
+                ],
+                "filter": {
+                    "name": "gh-slot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "environment": [],
+            "externalConsole": false,
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in gh-slot",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=gh-slot",
+                    "--package=gh-slot"
+                ],
+                "filter": {
+                    "name": "gh-slot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "environment": [],
+            "externalConsole": false,
+            "sourceLanguages": ["rust"]
+        }
+    ]
+}
