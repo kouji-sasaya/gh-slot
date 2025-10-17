@@ -25,19 +25,19 @@ impl SlotMachine {
         }
     }
 
-    async fn start_all_reels(&self) {
+    async fn start_all_reels(&mut self) {
+        // 全リールの回転を開始
         for reel in &self.reels {
             reel.start_spinning();
         }
 
         // 各リールのスピンループを並行実行
-        let reel0 = self.reels[0].clone();
-        let reel1 = self.reels[1].clone();
-        let reel2 = self.reels[2].clone();
-
-        tokio::spawn(async move { reel0.spin_loop().await });
-        tokio::spawn(async move { reel1.spin_loop().await });
-        tokio::spawn(async move { reel2.spin_loop().await });
+        for reel in &self.reels {
+            let reel_clone = reel.clone();
+            tokio::spawn(async move { 
+                reel_clone.spin_loop().await;
+            });
+        }
     }
 
     fn stop_reel(&self, index: usize) {

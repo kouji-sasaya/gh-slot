@@ -56,7 +56,7 @@ impl Reel {
     }
 
     pub async fn spin_loop(&self) {
-        let step_duration = Duration::from_millis(740 / REEL_SIZE as u64); // 各シンボルの表示時間
+        let step_duration = Duration::from_millis(100); // スピード調整：より速く回転
 
         loop {
             // スピン状態をチェック
