@@ -16,8 +16,8 @@ use reel::{check_winnings, Reel, DISPLAY_SIZE, PAYLINES};
 use std::io::{self, stdout};                                  // 入出力エラー処理と標準出力
 use std::time::Duration;                                      // 時間間隔指定
 // 非同期処理のためのtokioライブラリから時間待機機能をインポート
-use tokio::time::sleep;
-
+use std::sync::mpsc::{self, Sender, Receiver};
+use std::thread;
 /// スロットマシン全体を管理する構造体
 /// 3つのリールと前回の回転状態を保持
 struct SlotMachine {
@@ -37,20 +37,17 @@ impl SlotMachine {
 
     /// 全てのリールの回転を開始する非同期関数
     /// 各リールを並行して回転させるために非同期タスクを作成
-    async fn start_all_reels(&mut self) {
+    fn start_all_reels(&self) {
         // 全リールの回転開始フラグを設定
         for reel in &self.reels {
             reel.start_spinning();
         }
-
         // 各リールのスピンループを並行実行
-        // tokio::spawnで各リールを独立したタスクとして実行
         for reel in &self.reels {
             let reel_clone = reel.clone();
-            
-            // リール識別付きでタスクを作成
-            tokio::spawn(async move { 
-                reel_clone.spin_loop().await;
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(reel_clone.spin_loop());
             });
         }
     }
@@ -243,71 +240,77 @@ impl SlotMachine {
 /// メイン関数
 /// スロットマシンゲームのエントリーポイント
 /// 非同期実行とターミナル制御を行う
-#[tokio::main]
-async fn main() -> io::Result<()> {
+fn main() -> io::Result<()> {
     // ターミナルの初期化
-    // raw_modeにすることで、キー入力を即座に検知できるように設定
     terminal::enable_raw_mode()?;
     execute!(stdout(), terminal::Clear(ClearType::All))?;
 
-    // スロットマシンのインスタンスを作成
-    let mut slot_machine = SlotMachine::new();
-    
-    // 初期画面表示
-    slot_machine.display_initial_screen()?;
+    // チャンネル作成
+    let (tx, rx): (Sender<ReelCommand>, Receiver<ReelCommand>) = mpsc::channel();
 
-    // メインゲームループ
+    // スロットマシンのインスタンスをスレッド用に用意
+    let mut slot_machine = SlotMachine::new();
+
+    // リール制御・描画スレッド起動
+    let handle = thread::spawn(move || {
+        // 初期画面表示
+        slot_machine.display_initial_screen().unwrap();
+        loop {
+            // コマンド受信（ノンブロッキング）
+            while let Ok(cmd) = rx.try_recv() {
+                match cmd {
+                    ReelCommand::StartAll => {
+                        slot_machine.start_all_reels();
+                    }
+                    ReelCommand::Stop(idx) => {
+                        slot_machine.stop_reel(idx);
+                    }
+                    ReelCommand::Exit => return,
+                }
+            }
+            // 状態変化チェック
+            let state_changed = slot_machine.has_state_changed();
+            // 回転中または変化時のみ描画
+            if slot_machine.reels.iter().any(|r| r.is_spinning()) || state_changed {
+                slot_machine.display_reels().unwrap();
+            }
+            std::thread::sleep(Duration::from_millis(35));
+        }
+    });
+
+    // メインスレッド: キー入力のみ担当
     loop {
-        // 状態変化を先にチェック
-        // リールの回転状態が変わったかを確認
-        let state_changed = slot_machine.has_state_changed();
-        
-        // キー入力のチェック（ノンブロッキング）
-        // 100ミリ秒間待機してキー入力があるかをチェック
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
-                    // スペースキー、全角スペース、その他の空白文字で全リール開始
                     KeyCode::Char(c) if c == ' ' || c == '\u{3000}' || c.is_whitespace() => {
-                        slot_machine.start_all_reels().await;
+                        tx.send(ReelCommand::StartAll).unwrap();
                     }
-                    // 左矢印キーで左リール停止
-                    KeyCode::Left => {
-                        slot_machine.stop_reel(0);
-                    }
-                    // 下矢印キーで中央リール停止
-                    KeyCode::Down => {
-                        slot_machine.stop_reel(1);
-                    }
-                    // 右矢印キーで右リール停止
-                    KeyCode::Right => {
-                        slot_machine.stop_reel(2);
-                    }
-                    // ESCキーでゲーム終了
+                    KeyCode::Left => { tx.send(ReelCommand::Stop(0)).unwrap(); }
+                    KeyCode::Down => { tx.send(ReelCommand::Stop(1)).unwrap(); }
+                    KeyCode::Right => { tx.send(ReelCommand::Stop(2)).unwrap(); }
                     KeyCode::Esc => {
+                        tx.send(ReelCommand::Exit).unwrap();
                         break;
                     }
-                    // その他のキーは無視
                     _ => {}
                 }
             }
         }
-
-        // リールが回転中または状態が変化した場合に画面を更新
-        if slot_machine.reels.iter().any(|reel| reel.is_spinning()) || state_changed {
-            slot_machine.display_reels()?;
-        }
-
-        // 少し待機（CPUの負荷を下げるため）
-        sleep(Duration::from_millis(50)).await;
     }
 
-    // ターミナルの復元
-    // ゲーム終了時にターミナルを元の状態に戻す
+    // スレッド終了待ち
+    handle.join().unwrap();
     terminal::disable_raw_mode()?;
     execute!(stdout(), terminal::Clear(ClearType::All))?;
     execute!(stdout(), cursor::MoveTo(0, 0))?;
     println!("ゲームを終了しました。ありがとうございました！");
-
     Ok(())
+}
+
+// コマンド種別
+enum ReelCommand {
+    StartAll,
+    Stop(usize),
+    Exit,
 }
