@@ -16,11 +16,31 @@ jobs:
             platform: linux
             arch: amd64
             binary_suffix: ""
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            platform: linux
+            arch: arm64
+            binary_suffix: ""
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             platform: windows
             arch: amd64
             binary_suffix: ".exe"
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            platform: windows
+            arch: arm64
+            binary_suffix: ".exe"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos
+            arch: amd64
+            binary_suffix: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform: macos
+            arch: arm64
+            binary_suffix: ""
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -31,9 +51,18 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       
+      - name: Install cross (Linux ARM only)
+        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
+        run: cargo install cross
+
       - name: Build binary
+        shell: bash
         run: |
-          cargo build --release --target ${{ matrix.target }}
+          if [ "${{ matrix.platform }}" = "linux" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
       
       - name: Prepare binary
         shell: bash
@@ -88,10 +117,15 @@ jobs:
             \`\`\`
             
             ## Available Binaries
-            - \`gh-slot-linux-amd64\` - Linux x86_64
-            - \`gh-slot-windows-amd64.exe\` - Windows x86_64
-            
+            - `gh-slot-linux-amd64` - Linux x86_64
+            - `gh-slot-linux-arm64` - Linux ARM64
+            - `gh-slot-windows-amd64.exe` - Windows x86_64
+            - `gh-slot-windows-arm64.exe` - Windows ARM64
+            - `gh-slot-macos-amd64` - macOS x86_64
+            - `gh-slot-macos-arm64` - macOS ARM64
+
             ## Supported Platforms
-            - Linux (x86_64)
-            - Windows (x86_64)" \
+            - Linux (x86_64, ARM64)
+            - Windows (x86_64, ARM64)
+            - macOS (x86_64, ARM64)" \
             release-assets/*
